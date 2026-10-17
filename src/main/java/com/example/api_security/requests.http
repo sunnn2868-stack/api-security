@@ -1,0 +1,48 @@
+### 1. Get login page and save CSRF token
+GET http://localhost:8083/login
+
+> {%
+    const html = response.body.toString();
+    const match = html.match(/name="_csrf"[\s\S]*?value="([^"]+)"/);
+
+    client.log("HTML received: " + (html.length > 0));
+    client.log("CSRF token found: " + Boolean(match));
+
+    if (match) {
+        client.global.set("csrfToken", match[1]);
+    }
+%}
+
+
+### 2. Log in as the development user
+# @no-redirect
+POST http://localhost:8083/login
+Content-Type: application/x-www-form-urlencoded
+X-CSRF-TOKEN: {{csrfToken}}
+
+username=devuser&password={{devUserPassword}}
+
+### Refresh CSRF token after login
+GET http://localhost:8083/login
+
+> {%
+    const html = response.body.toString();
+    const match = html.match(/name="_csrf"[\s\S]*?value="([^"]+)"/);
+
+    client.log("Post-login CSRF token found: " + Boolean(match));
+
+    if (match) {
+        client.global.set("csrfToken", match[1]);
+    }
+%}
+
+### Register a user
+# @no-redirect
+POST http://localhost:8083/api/security/register
+Content-Type: application/json
+Accept: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "password": "SecurePass123"
+}
